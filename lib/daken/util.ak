@@ -1,3 +1,5 @@
+use aiken/builtin
+use aiken/collection.{Index}
 use aiken/collection/dict
 use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
@@ -8,10 +10,13 @@ use cardano/script_context.{ScriptContext, Spending}
 use cardano/transaction.{
   Datum, DatumHash, InlineDatum, Input, NoDatum, Output, Transaction,
 }
-use daken/types.{Datums, PublicKeyHash}
+use daken/fixture/tx_builder
+use daken/flist
+use daken/tokens
+use daken/types.{Datums, PublicKeyHash, TupleAsset}
 
 pub fn get_spending_input(ctx: ScriptContext) -> Input {
-  expect Spending(output_reference, _datum) = ctx.info
+  expect Spending { output: output_reference, .. } = ctx.info
   expect Some(input) =
     list.find(
       ctx.transaction.inputs,
@@ -116,14 +121,11 @@ pub fn find_while(
 ) -> result {
   when self is {
     [] -> zero
-    [x, ..xs] -> {
-      let (break, r) = with(x, zero)
-      if break {
-        r
-      } else {
-        find_while(xs, r, with)
+    [x, ..xs] ->
+      when with(x, zero) is {
+        (True, r) -> r
+        (_, r) -> find_while(xs, r, with)
       }
-    }
   }
 }
 
@@ -273,4 +275,120 @@ pub fn has_valid_nft_license(
         _ -> False
       }
   }
+}
+
+pub fn get_datum_by_idx(inputs: List<Input>, nft: TupleAsset, idx: Int) -> Data {
+  let Input { output: Output { value, datum, .. }, .. } = flist.get(inputs, idx)
+  expect tokens.contains_nft(value, nft)
+  expect InlineDatum(datum) = datum
+  datum
+}
+
+pub fn get_datum_by_nft(inputs: List<Input>, nft: TupleAsset) {
+  let found_dt =
+    list.find(
+      inputs,
+      fn(Input { output: Output { value, .. }, .. }) {
+        tokens.contains_nft(value, nft)
+      },
+    )
+  expect Some(Input { output: Output { datum: InlineDatum(dt), .. }, .. }) =
+    found_dt
+  dt
+}
+
+pub fn get_maybe_datum_by_nft(
+  inputs: List<Input>,
+  nft: TupleAsset,
+) -> Option<Data> {
+  find_map(
+    inputs,
+    fn(Input { output: Output { value, datum, .. }, .. }) {
+      if tokens.contains_nft(value, nft) {
+        expect InlineDatum(datum) = datum
+        Some(datum)
+      } else {
+        None
+      }
+    },
+  )
+}
+
+pub fn get_list_data_by_idx(
+  list_data: List<Data>,
+  idx: List<Index>,
+) -> List<Data> {
+  list.foldr(idx, [], fn(i, ret) { [flist.get(list_data, i), ..ret] })
+}
+
+pub fn get_data_in_list_by_idx(data: Data, idx: List<Index>) -> List<Data> {
+  let list_data = builtin.un_list_data(data)
+  get_list_data_by_idx(list_data, idx)
+}
+
+pub fn get_data_in_constr_by_idx(data: Data, idx: List<Index>) -> List<Data> {
+  let Pair(_, list_data) = builtin.un_constr_data(data)
+  get_list_data_by_idx(list_data, idx)
+}
+
+test get_data_in_list_by_idx_1() {
+  let data = (1, 2, 3, 4, 5, 6)
+  let idxs = [0, 3]
+  expect [a, b] = get_data_in_list_by_idx(data, idxs)
+  expect a: Int = a
+  expect b: Int = b
+  and {
+    a == 1,
+    b == 4,
+  }
+}
+
+test get_data_in_constr_by_idx_1() {
+  let data = tx_builder.new()
+  let idxs = [0, 3]
+  expect [a, b] = get_data_in_constr_by_idx(data, idxs)
+  expect a: List<Input> = a
+  expect b: Int = b
+  and {
+    a == [],
+    b == 0,
+  }
+}
+
+pub fn pairs_take(self: Pairs<k, v>, key: k) {
+  when self is {
+    [] -> (None, self)
+    [Pair(x_k, x_v) as x, ..xs] ->
+      if x_k == key {
+        (Some(x_v), xs)
+      } else {
+        let (result, excluded) = pairs_take(xs, key)
+        (result, [x, ..excluded])
+      }
+  }
+}
+
+test pairs_take_1() {
+  let p = [Pair("a", 1), Pair("b", 2), Pair("c", 3)]
+  pairs_take(p, "a") == (Some(1), [Pair("b", 2), Pair("c", 3)])
+}
+
+test pairs_take_2() {
+  let p = [Pair("a", 1), Pair("b", 2), Pair("c", 3)]
+  pairs_take(p, "b") == (Some(2), [Pair("a", 1), Pair("c", 3)])
+}
+
+test pairs_take_3() {
+  let p = [Pair("a", 1), Pair("b", 2), Pair("c", 3)]
+  pairs_take(p, "c") == (Some(3), [Pair("a", 1), Pair("b", 2)])
+}
+
+test pairs_take_4() {
+  let p = []
+  pairs_take(p, "c") == (None, p)
+}
+
+test pairs_take_5() {
+  let p = [Pair("a", 1), Pair("b", 2), Pair("c", 3)]
+  pairs_take(p, "d") == (None, p)
 }
