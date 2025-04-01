@@ -13,11 +13,13 @@ pub fn same_assets(v1: Value, v2: Value) -> Bool {
 test correct_same_assets_1() {
   let v1 =
     assets.from_asset("policy1", "token1", 20)
-      |> assets.add("policy2", "token2", 5) // add lovelace
+      |> assets.add("policy2", "token2", 5)
+      // add lovelace
       |> assets.add("", "", 400)
   let v2 =
     assets.from_asset("policy2", "token2", 5)
-      |> assets.add("policy1", "token1", 20) // add lovelace
+      |> assets.add("policy1", "token1", 20)
+      // add lovelace
       |> assets.add("", "", 1000)
   same_assets(v1, v2)
 }

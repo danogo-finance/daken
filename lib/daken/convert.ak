@@ -5,7 +5,8 @@ use aiken/primitive/bytearray
 /// e.g: 0xABCD1, 5 -> #"00 00 0A BC D1"
 /// if no. of bytes is not suffice, get the least significant value
 pub fn number_to_bytearray_hex(number: Int, bytes: Int) -> ByteArray {
-  do_convert_reversed(number, bytes) // flip string back to normal (big endian)
+  do_convert_reversed(number, bytes)
+    // flip string back to normal (big endian)
     |> bytearray.foldl("", fn(b, ret) { builtin.cons_bytearray(b, ret) })
 }
 
