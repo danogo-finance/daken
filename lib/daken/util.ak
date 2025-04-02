@@ -327,7 +327,7 @@ pub fn get_data_in_list_by_idx(data: Data, idx: List<Index>) -> List<Data> {
 }
 
 pub fn get_data_in_constr_by_idx(data: Data, idx: List<Index>) -> List<Data> {
-  let Pair(_, list_data) = builtin.un_constr_data(data)
+  let list_data = builtin.unconstr_fields(data)
   get_list_data_by_idx(list_data, idx)
 }
 
