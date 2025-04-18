@@ -1,5 +1,5 @@
 name = "danogo2023/daken"
-version = "2.3.0"
+version = "2.3.1"
 compiler = "v1.1.15"
 plutus = "v3"
 license = "Apache-2.0"
