@@ -19,7 +19,7 @@ validator one_shot {
     //    - NFT license (optional):
     //      - nft_license_name: must be hash blake2b_256 nft_name
     //      - quantity: should be 1
-    let nft_name = inputs_hash.blake2b_256_sort_asc(inputs)
+    let nft_name = inputs_hash.blake2b_256(inputs)
     let license_name = crypto.blake2b_256(nft_name)
     dict.foldl(
       assets.tokens(mint, pid),
@@ -37,6 +37,28 @@ validator one_shot {
         }
       },
     )
+  }
+
+  else(_) {
+    fail @"support minting only"
+  }
+}
+
+validator multi_shot {
+  mint(
+    _rdmr: Data,
+    pid: PolicyId,
+    Transaction { inputs, mint, .. }: Transaction,
+  ) {
+    let nft_name = inputs_hash.blake2b_256(inputs)
+    //
+    expect [Pair(asset_name, quantity)] =
+      mint |> assets.tokens(pid) |> dict.to_pairs()
+    //
+    and {
+      (asset_name == nft_name)?,
+      (quantity > 0)?,
+    }
   }
 
   else(_) {
