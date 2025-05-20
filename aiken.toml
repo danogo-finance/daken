@@ -1,6 +1,6 @@
 name = "danogo2023/daken"
-version = "2.3.2"
-compiler = "v1.1.15"
+version = "2.3.3"
+compiler = "v1.1.17"
 plutus = "v3"
 license = "Apache-2.0"
 description = "Danogo Aiken Library"

@@ -108,19 +108,34 @@ fn decode_data(peek: Peek<Data>, take: Take<Data>) -> Decoder<Data> {
     if tag == 102 {
       fn(_) { deserialise_failure }
     } else {
-      let ix =
-        if tag >= 1280 {
-          tag - 1280 + 7
-        } else {
-          tag - 121
-        }
-      if next == token_begin_list {
-        let fields <- decode_indefinite(peek, take, decode_data)
-        return(builtin.constr_data(ix, fields))
+      // TAGS in node_modules/cardano-hw-interop-lib/node_modules/cbor/lib/tagged.js
+      if tag == 2 {
+        // positive bignum
+        let b <- decode_bytes(peek, take, next - 64)
+        return(bytearray.to_int_big_endian(b))
+      } else if tag == 3 {
+        // negative bignum
+        let b <- decode_bytes(peek, take, next - 64)
+        return(0 - bytearray.to_int_big_endian(b))
       } else {
-        let size <- decode_uint(peek, take, next - 128)
-        let fields <- decode_definite(peek, take, decode_data, size)
-        return(builtin.constr_data(ix, fields))
+        let ix =
+          if tag >= 1280 {
+            tag - 1280 + 7
+          } else {
+            tag - 121
+          }
+        if ix >= 0 {
+          if next == token_begin_list {
+            let fields <- decode_indefinite(peek, take, decode_data)
+            return(builtin.constr_data(ix, fields))
+          } else {
+            let size <- decode_uint(peek, take, next - 128)
+            let fields <- decode_definite(peek, take, decode_data, size)
+            return(builtin.constr_data(ix, fields))
+          }
+        } else {
+          fail @"This tag is invalid"
+        }
       }
     }
   } else if major_type == 4 {
