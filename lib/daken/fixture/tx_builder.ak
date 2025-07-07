@@ -5,6 +5,8 @@ use aiken/interval
 use aiken/primitive/bytearray
 use cardano/address.{Script, StakeCredential}
 use cardano/assets.{PolicyId}
+use cardano/certificate.{Certificate}
+use cardano/governance.{ProposalProcedure}
 use cardano/transaction.{
   Input, Mint, Output, ScriptPurpose, Spend, Transaction, ValidityRange,
   Withdraw,
@@ -106,6 +108,20 @@ pub fn add_zero_withdrawal_script(
   let cred = Script(tour_pkh)
   Transaction { ..self, withdrawals: [Pair(cred, 0), ..self.withdrawals] }
     |> add_redeemer(Withdraw(cred), redeemer)
+}
+
+pub fn add_proposal_procedure(
+  self: Transaction,
+  proposal_procedure: ProposalProcedure,
+) {
+  Transaction {
+    ..self,
+    proposal_procedures: [proposal_procedure, ..self.proposal_procedures],
+  }
+}
+
+pub fn add_certificate(self: Transaction, certificate: Certificate) {
+  Transaction { ..self, certificates: [certificate, ..self.certificates] }
 }
 
 pub fn script_purpose_compare(left: ScriptPurpose, right: ScriptPurpose) {
