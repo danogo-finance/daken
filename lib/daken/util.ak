@@ -8,7 +8,8 @@ use cardano/address.{Address, Script, VerificationKey}
 use cardano/assets.{AssetName, PolicyId}
 use cardano/script_context.{ScriptContext, Spending}
 use cardano/transaction.{
-  Datum, DatumHash, InlineDatum, Input, NoDatum, Output, Transaction,
+  Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
+  Transaction,
 }
 use daken/fixture/tx_builder
 use daken/flist
@@ -314,6 +315,189 @@ pub fn get_maybe_datum_by_nft(
   )
 }
 
+pub fn get_inline_datum_by_idx_and_nft(
+  reference_inputs: List<Input>,
+  ref_idx: Int,
+  nft: TupleAsset,
+) -> Data {
+  let ref_input = reference_inputs |> flist.get(ref_idx)
+  let Input { output: Output { value, datum, .. }, .. } = ref_input
+  expect tokens.contains_nft(value, nft)
+  expect InlineDatum(dt) = datum
+  dt
+}
+
+test succ_get_inline_datum_by_idx_and_nft_first_input() {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  get_inline_datum_by_idx_and_nft([utxo1, utxo2], 0, (nft_pid, nft_name)) == datum
+}
+
+test succ_get_inline_datum_by_idx_and_nft_last_input() {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  get_inline_datum_by_idx_and_nft([utxo2, utxo1], 1, (nft_pid, nft_name)) == datum
+}
+
+test fail_get_inline_datum_by_idx_and_nft_negative_idx() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  expect _: Data =
+    get_inline_datum_by_idx_and_nft([utxo1, utxo2], -1, (nft_pid, nft_name))
+  True
+}
+
+test fail_get_inline_datum_by_idx_and_nft_out_range_idx() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  expect _: Data =
+    get_inline_datum_by_idx_and_nft([utxo1, utxo2], 2, (nft_pid, nft_name))
+  True
+}
+
+test fail_get_inline_datum_by_idx_and_nft_utxo_does_not_have_nft() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  expect _: Data =
+    get_inline_datum_by_idx_and_nft([utxo1, utxo2], 0, (nft_pid, nft_name))
+  True
+}
+
 pub fn get_list_data_by_idx(
   list_data: List<Data>,
   idx: List<Index>,
@@ -353,4 +537,216 @@ test get_data_in_constr_by_idx_1() {
     a == [],
     b == 0,
   }
+}
+
+pub fn is_nft_spent(
+  inputs: List<Input>,
+  nft_pid: PolicyId,
+  nft_name: AssetName,
+  input_idx: Int,
+) {
+  let Input { output: Output { value, .. }, .. } = flist.get(inputs, input_idx)
+  assets.quantity_of(value, nft_pid, nft_name) == 1
+}
+
+test succ_is_nft_spent() {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  is_nft_spent([utxo1, utxo2], nft_pid, nft_name, 0)
+}
+
+test fail_is_nft_spent_specified_utxo_does_not_contain_nft() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  is_nft_spent([utxo1, utxo2], nft_pid, nft_name, 1)
+}
+
+pub fn is_nft_referenced(
+  reference_inputs: List<Input>,
+  extra_signatories: List<VerificationKeyHash>,
+  nft_pid: PolicyId,
+  nft_name: AssetName,
+  ref_input_idx: Int,
+) {
+  let Input {
+    output: Output {
+      address: Address { payment_credential: pk, .. },
+      value,
+      ..
+    },
+    ..
+  } = flist.get(reference_inputs, ref_input_idx)
+
+  //
+  when pk is {
+    VerificationKey(vkh) -> {
+      // check signatory from the owner of nft_license
+      expect list.has(extra_signatories, vkh)
+      assets.quantity_of(value, nft_pid, nft_name) == 1
+    }
+
+    _ -> fail @"The license in ref_inputs is unauthorized"
+  }
+}
+
+test succ_is_nft_referenced() {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let vkey_hash = "vkey"
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_verification_key(vkey_hash),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  let extra_signatories = [vkey_hash]
+
+  is_nft_referenced([utxo1, utxo2], extra_signatories, nft_pid, nft_name, 0)
+}
+
+test fail_is_nft_referenced_specified_utxo_does_not_contain_nft() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let vkey_hash = "vkey"
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_verification_key(vkey_hash),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  let extra_signatories = [vkey_hash]
+
+  is_nft_referenced([utxo1, utxo2], extra_signatories, nft_pid, nft_name, 1)
+}
+
+test fail_is_nft_referenced_missing_signature() fail {
+  let (nft_pid, nft_name) = ("policyId", "assetName")
+  let vkey_hash = "vkey"
+  let datum: Data = "datum"
+  let utxo1 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_verification_key(vkey_hash),
+        value: assets.from_asset(nft_pid, nft_name, 1),
+        datum: InlineDatum(datum),
+        reference_script: None,
+      },
+    }
+  let utxo2 =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: "lastTxn",
+        output_index: 0,
+      },
+      output: Output {
+        address: address.from_script(#""),
+        value: assets.zero,
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  let extra_signatories = []
+
+  is_nft_referenced([utxo1, utxo2], extra_signatories, nft_pid, nft_name, 0)
 }
