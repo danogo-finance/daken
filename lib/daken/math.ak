@@ -80,3 +80,34 @@ test gcd_0() {
 test gcd_1() {
   gcd(54, 24) == 6
 }
+
+pub fn ceiling_div(a: Int, b: Int) -> Int {
+  -(-a / b)
+}
+
+test test_ceiling_div() {
+  // ----- positive -----
+  expect ceiling_div(10, 3) == 4
+  expect ceiling_div(9, 3) == 3
+  expect ceiling_div(1, 3) == 1
+  expect ceiling_div(0, 5) == 0
+  expect ceiling_div(7, 1) == 7
+
+  // ----- negative -----
+  // -7 / 3 = -2.333 → ceil = -2
+  expect ceiling_div(-7, 3) == -2
+
+  // 7 / -3 = -2.333 → ceil = -2
+  expect ceiling_div(7, -3) == -2
+
+  // -7 / -3 = 2.333 → ceil = 3
+  expect ceiling_div(-7, -3) == 3
+
+  expect ceiling_div(-1, 3) == 0
+  expect ceiling_div(1, -3) == 0
+}
+
+test fail_ceiling_div_zero_division() fail {
+  expect _: Int = ceiling_div(10, 0)
+  True
+}

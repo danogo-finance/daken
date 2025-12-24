@@ -18,10 +18,7 @@ const l =
 /// This helper can be useful in a narrow scope where performance 
 /// is a high priority
 pub fn get(self: List<a>, at: Int) -> a {
-  when advance(self, at) is {
-    [x, ..] -> x
-    _ -> fail
-  }
+  advance(self, at) |> builtin.head_list
 }
 
 pub fn at(self: List<a>, at: Int) -> a {
@@ -290,8 +287,12 @@ test take_flist_reverse_2() {
 }
 
 pub fn advance(self: List<a>, idx: Int) -> List<a> {
-  if idx < 5 {
-    self |> advance_step_by_step(idx)
+  if idx == 0 {
+    self
+  } else if idx < 3 {
+    self
+      |> builtin.tail_list
+      |> advance(idx - 1)
   } else if idx >= 10 {
     self
       |> builtin.tail_list
@@ -305,7 +306,7 @@ pub fn advance(self: List<a>, idx: Int) -> List<a> {
       |> builtin.tail_list
       |> builtin.tail_list
       |> advance(idx - 10)
-  } else {
+  } else if idx >= 5 {
     self
       |> builtin.tail_list
       |> builtin.tail_list
@@ -313,6 +314,12 @@ pub fn advance(self: List<a>, idx: Int) -> List<a> {
       |> builtin.tail_list
       |> builtin.tail_list
       |> advance(idx - 5)
+  } else {
+    self
+      |> builtin.tail_list
+      |> builtin.tail_list
+      |> builtin.tail_list
+      |> advance(idx - 3)
   }
 }
 
@@ -375,4 +382,76 @@ test take_head_flist_oget() {
 
 test take_head_flist_ato() {
   ato(l, 0) == Some(1)
+}
+
+pub fn foldl2(
+  self: List<elem>,
+  zero_a: a,
+  zero_b: b,
+  with: fn(elem, a, b, fn(a, b) -> result) -> result,
+  return: fn(a, b) -> result,
+) -> result {
+  when self is {
+    [] -> return(zero_a, zero_b)
+    [x, ..xs] -> {
+      let a, b <- with(x, zero_a, zero_b)
+      foldl2(xs, a, b, with, return)
+    }
+  }
+}
+
+test test_foldl2() {
+  let
+    sum,
+    product,
+  <-
+    foldl2(
+      [1, 2, 3, 4, 5],
+      0,
+      1,
+      fn(item, sum, product, return) { return(sum + item, product * item) },
+    )
+  and {
+    sum == 15,
+    product == 120,
+  }
+}
+
+pub fn foldl3(
+  self: List<elem>,
+  zero_a: a,
+  zero_b: b,
+  zero_c: c,
+  with: fn(elem, a, b, c, fn(a, b, c) -> result) -> result,
+  return: fn(a, b, c) -> result,
+) -> result {
+  when self is {
+    [] -> return(zero_a, zero_b, zero_c)
+    [x, ..xs] -> {
+      let a, b, c <- with(x, zero_a, zero_b, zero_c)
+      foldl3(xs, a, b, c, with, return)
+    }
+  }
+}
+
+test test_foldl3() {
+  let
+    sum,
+    product,
+    sum_square,
+  <-
+    foldl3(
+      [1, 2, 3, 4, 5],
+      0,
+      1,
+      0,
+      fn(item, sum, product, sum_square, return) {
+        return(sum + item, product * item, sum_square + item * item)
+      },
+    )
+  and {
+    sum == 15,
+    product == 120,
+    sum_square == 55,
+  }
 }
