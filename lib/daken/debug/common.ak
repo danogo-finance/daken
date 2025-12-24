@@ -121,17 +121,17 @@ pub fn to_tx(
     outputs,
     fee,
     mint,
-    certificates: _,
-    withdrawals: _,
+    certificates,
+    withdrawals,
     validity_range,
     extra_signatories,
     redeemers,
     datums: _,
-    id: _,
-    votes: _,
-    proposal_procedures: _,
-    current_treasury_amount: _,
-    treasury_donation: _,
+    id,
+    votes,
+    proposal_procedures,
+    current_treasury_amount,
+    treasury_donation,
   }: FxTransaction,
 ) -> Transaction {
   Transaction {
@@ -144,6 +144,13 @@ pub fn to_tx(
     outputs: list.map(outputs, to_output),
     reference_inputs: list.map(reference_inputs, to_input),
     validity_range: validity_range,
+    id: id,
+    certificates: certificates,
+    withdrawals: withdrawals,
+    votes: votes,
+    proposal_procedures: proposal_procedures,
+    current_treasury_amount: current_treasury_amount,
+    treasury_donation: treasury_donation,
   }
 }
 
